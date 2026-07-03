@@ -22,9 +22,143 @@
       padding: 20px 0;
     }
 
+    /* --- 主容器：左右布局 --- */
+    .main-container {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 20px;
+    }
+
     .game-wrapper {
       text-align: center;
-      padding: 20px;
+      flex-shrink: 0;
+    }
+
+    /* --- 右侧排行榜 --- */
+    .leaderboard-panel {
+      background: #16213e;
+      border: 1px solid rgba(78, 204, 163, 0.25);
+      border-radius: 8px;
+      padding: 16px;
+      width: 200px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 20px;
+    }
+
+    .leaderboard-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(78, 204, 163, 0.15);
+    }
+
+    .leaderboard-header h3 {
+      color: #f5c518;
+      font-size: 15px;
+      letter-spacing: 1px;
+      margin: 0;
+    }
+
+    .leaderboard-list {
+      max-height: 360px;
+      overflow-y: auto;
+    }
+
+    .leaderboard-list::-webkit-scrollbar {
+      width: 3px;
+    }
+
+    .leaderboard-list::-webkit-scrollbar-thumb {
+      background: rgba(78, 204, 163, 0.25);
+      border-radius: 2px;
+    }
+
+    .lb-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 4px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      font-size: 13px;
+      transition: background 0.2s;
+    }
+
+    .lb-item:last-child {
+      border-bottom: none;
+    }
+
+    .lb-rank {
+      width: 22px;
+      height: 22px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+
+    .lb-rank.gold {
+      background: linear-gradient(135deg, #f5c518, #d4a80a);
+      color: #1a1a2e;
+    }
+
+    .lb-rank.silver {
+      background: linear-gradient(135deg, #c0c0c0, #909090);
+      color: #1a1a2e;
+    }
+
+    .lb-rank.bronze {
+      background: linear-gradient(135deg, #cd7f32, #a0522d);
+      color: #fff;
+    }
+
+    .lb-rank.normal {
+      background: rgba(255, 255, 255, 0.08);
+      color: #888;
+    }
+
+    .lb-score {
+      color: #e94560;
+      font-weight: 700;
+      font-size: 15px;
+      flex: 1;
+      text-align: right;
+    }
+
+    .lb-speed {
+      color: #f5c518;
+      font-size: 10px;
+      opacity: 0.8;
+    }
+
+    .lb-empty {
+      text-align: center;
+      color: #555;
+      font-size: 12px;
+      padding: 30px 0;
+    }
+
+    /* --- 响应式：窄屏堆叠 --- */
+    @media (max-width: 800px) {
+      .main-container {
+        flex-direction: column;
+        align-items: center;
+      }
+      .leaderboard-panel {
+        width: 100%;
+        max-width: 400px;
+        position: static;
+      }
+      .leaderboard-list {
+        max-height: 200px;
+      }
     }
 
     .header {
@@ -499,6 +633,7 @@
 </head>
 <body>
 
+<div class="main-container">
 <div class="game-wrapper">
   <div class="header">
     <h1>🐍 贪吃蛇</h1>
@@ -564,6 +699,17 @@
   </div>
 </div>
 
+<!-- 右侧排行榜 -->
+<div class="leaderboard-panel">
+  <div class="leaderboard-header">
+    <h3>🏆 排行榜 TOP10</h3>
+  </div>
+  <div class="leaderboard-list" id="leaderboard-list">
+    <div class="lb-empty">暂无记录</div>
+  </div>
+</div>
+</div>
+
 <!-- 停止计分提示 -->
 <div class="stop-score-toast" id="stop-toast"></div>
 
@@ -587,12 +733,12 @@
 
     // 速度档位：1-6 档，ms/帧
     const SPEED_LEVELS = [
-      { name: '1档·超慢', value: 250 },
-      { name: '2档·慢',   value: 200 },
-      { name: '3档·中',   value: 150 },
-      { name: '4档·快',   value: 100 },
-      { name: '5档·很快', value: 70 },
-      { name: '6档·极速', value: 45 },
+      { name: '1档·超慢', value: 350 },
+      { name: '2档·慢',   value: 300 },
+      { name: '3档·中',   value: 250 },
+      { name: '4档·快',   value: 200 },
+      { name: '5档·很快', value: 100 },
+      { name: '6档·极速', value: 80 },
     ];
     const DEFAULT_SPEED_INDEX = 2; // 3档·中
 
@@ -748,12 +894,14 @@
       if (history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
       saveHistory();
       renderHistory();
+      renderLeaderboard();
     }
 
     function clearHistory() {
       history = [];
       saveHistory();
       renderHistory();
+      renderLeaderboard();
     }
 
     function formatDate(isoStr) {
@@ -795,6 +943,38 @@
             <span class="hi-score">${entry.score} 分</span>
             <span class="hi-speed">${entry.speed}</span>
             <span class="hi-date">${formatDate(entry.date)}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderLeaderboard() {
+      const listEl = document.getElementById('leaderboard-list');
+      if (history.length === 0) {
+        listEl.innerHTML = '<div class="lb-empty">暂无记录</div>';
+        return;
+      }
+
+      // 按分数降序取前 10
+      const top10 = [...history]
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 10);
+
+      listEl.innerHTML = top10.map((entry, i) => {
+        const rank = i + 1;
+        let rankClass = 'normal';
+        if (rank === 1) rankClass = 'gold';
+        else if (rank === 2) rankClass = 'silver';
+        else if (rank === 3) rankClass = 'bronze';
+
+        // 取速度简称
+        const speedShort = entry.speed.replace(/^\d档·/, '');
+
+        return `
+          <div class="lb-item">
+            <span class="lb-rank ${rankClass}">${rank}</span>
+            <span class="lb-score">${entry.score}</span>
+            <span class="lb-speed">${speedShort}</span>
           </div>
         `;
       }).join('');
@@ -1214,6 +1394,7 @@
     // --- 初始化为 IDLE 状态 ---
     loadHistory();
     renderHistory();
+    renderLeaderboard();
     initGame();
     gameState = STATE.IDLE;
     updateButtons();
