@@ -1247,18 +1247,21 @@
     }
 
     function stopGame() {
+      // IDLE：无需操作；GAME_OVER：只关闭遮罩并重置，不重复记录
       if (gameState === STATE.IDLE) return;
       clearInterval(gameLoop);
       gameLoop = null;
-      overlay.classList.add('hidden');
 
-      // 如果当前分数 > 0，记录到历史
-      const finalScore = score;
-      if (finalScore > 0) {
-        addHistory(finalScore);
-        showToast(`📋 分数 ${finalScore} 已记录`);
+      // 仅运行中/暂停中停止才记录分数（GAME_OVER 已由 gameOver() 记录过）
+      if (gameState === STATE.RUNNING || gameState === STATE.PAUSED) {
+        const finalScore = score;
+        if (finalScore > 0) {
+          addHistory(finalScore);
+          showToast(`📋 分数 ${finalScore} 已记录`);
+        }
       }
 
+      overlay.classList.add('hidden');
       initGame();
       gameState = STATE.IDLE;
       updateButtons();
@@ -1266,6 +1269,9 @@
     }
 
     function gameOver() {
+      // 防止重复触发
+      if (gameState === STATE.GAME_OVER) return;
+
       clearInterval(gameLoop);
       gameLoop = null;
       gameState = STATE.GAME_OVER;
